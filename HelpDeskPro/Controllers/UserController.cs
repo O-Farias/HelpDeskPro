@@ -1,5 +1,5 @@
 using HelpDeskPro.Models;
-using HelpDeskPro.Repositories;
+using HelpDeskPro.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HelpDeskPro.Controllers
@@ -8,18 +8,18 @@ namespace HelpDeskPro.Controllers
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IUserService _userService;
 
-        public UserController(IUserRepository userRepository)
+        public UserController(IUserService userService)
         {
-            _userRepository = userRepository;
+            _userService = userService;
         }
 
         // 1. Listar todos os usuários
         [HttpGet]
         public async Task<IActionResult> GetAllUsers()
         {
-            var users = await _userRepository.GetAllAsync();
+            var users = await _userService.GetAllUsersAsync();
             return Ok(users);
         }
 
@@ -27,7 +27,7 @@ namespace HelpDeskPro.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUserById(int id)
         {
-            var user = await _userRepository.GetByIdAsync(id);
+            var user = await _userService.GetUserByIdAsync(id);
 
             if (user == null)
                 return NotFound();
@@ -39,7 +39,7 @@ namespace HelpDeskPro.Controllers
         [HttpGet("email/{email}")]
         public async Task<IActionResult> GetUserByEmail(string email)
         {
-            var user = await _userRepository.GetByEmailAsync(email);
+            var user = await _userService.GetUserByEmailAsync(email);
 
             if (user == null)
                 return NotFound();
@@ -54,41 +54,38 @@ namespace HelpDeskPro.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            await _userRepository.AddAsync(user);
-            return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, user);
+            var createdUser = await _userService.CreateUserAsync(user);
+            return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
         }
 
         // 5. Atualizar um usuário
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(int id, [FromBody] User user)
         {
-            var existingUser = await _userRepository.GetByIdAsync(id);
-
-            if (existingUser == null)
-                return NotFound();
-
-            existingUser.Name = user.Name;
-            existingUser.Email = user.Email;
-            existingUser.Password = user.Password;
-            existingUser.Role = user.Role;
-
-            await _userRepository.UpdateAsync(existingUser);
-
-            return NoContent();
+            try
+            {
+                await _userService.UpdateUserAsync(id, user);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
         // 6. Deletar um usuário
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            var user = await _userRepository.GetByIdAsync(id);
-
-            if (user == null)
-                return NotFound();
-
-            await _userRepository.DeleteAsync(id);
-
-            return NoContent();
+            try
+            {
+                await _userService.DeleteUserAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
     }
 }
