@@ -45,3 +45,6 @@ node_modules/
 # Arquivos do Visual Studio
 .vs/
 *.csproj.user
+
+# Banco de dados SQLite
+HelpDeskPro.db
